@@ -1,0 +1,185 @@
+<style>
+    /* Style the button */
+    .submit-button {
+        padding: 10px 20px;
+        background-color: #f4d528; /* Change the background color here */
+        color: #000000; /* Change the text color here */
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+        margin: 5px; /* Add invisible margins to detach the button */
+    }
+    
+    /* Add hover effect */
+    .submit-button:hover {
+        background-color: #d8ba00; /* You can choose a different color for hover effect if needed */
+    }
+    
+    /* Style the input field to match the button */
+    input[type="text"] {
+        padding: 10px 20px; /* Match the padding with the button */
+        border: none; /* Remove the border */
+        border-radius: 5px;
+        font-size: 16px;
+        width: 100%; /* Make the width 100% relative to the container */
+        outline: none; /* Remove the outline on focus */
+    }
+
+    /* Style the invisible container */
+    .containerIS {
+        display: flex;
+        border: 1px solid #000000; /* Thin black border for the container */
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    /* Style for the transparent overlay */
+    #transparentOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        z-index: 1000000 !important; /* Increase the z-index value to ensure it appears on top */
+    }
+
+    /* Style for the retrieving popup */
+    #retrievingPopup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        z-index: 1000001 !important; /* Set a z-index value greater than the overlay's */
+    }
+
+    /* Style for ID not found popup */
+    #idNotFoundPopup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 5px; /* Decreased padding for the popup */
+        border-radius: 5px;
+        font-weight: bold;
+        z-index: 1000001 !important; /* Set a z-index value greater than the overlay's */
+        max-height: 50px; /* Decreased max-height for the popup */
+        overflow: hidden; /* Hide any content that exceeds the max-height */
+    }
+
+    /* Style for the OK button inside idNotFoundPopup */
+    #nonePopupOverlay {
+        padding: 5px 10px; /* Decreased padding for the OK button */
+        background-color: #f4d528; /* Change the background color here */
+        color: #000000; /* Change the text color here */
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px; /* Decreased font size for the OK button */
+        transition: background-color 0.3s ease;
+    }
+
+</style>
+
+<form id="redirectForm">
+    <div class="containerIS">
+        <input type="text" id="idURLRedirect" name="idURLRedirect" placeholder="Enter it here..." required />
+        <button type="submit" class="submit-button">Submit</button>
+    </div>
+</form>
+
+<div id="transparentOverlay"></div>
+<div id="retrievingPopup">Retrieving...</div>
+<div id="idNotFoundPopup">ID not found. Please enter a valid ID.&nbsp;&nbsp;&nbsp;&nbsp;<button id="nonePopupOverlay">OK</button></div>
+
+<script>
+
+    // Add an event listener for the "OK" button with nonePopupOverlay id
+    document.getElementById('nonePopupOverlay').addEventListener('click', function () {
+        transparentOverlay.style.display = 'none';
+        idNotFoundPopup.style.display = 'none';
+    });
+
+    document.getElementById('redirectForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        const id = document.getElementById('idURLRedirect').value;
+
+        // Show the transparentOverlay and retrievingPopup while fetching data
+        transparentOverlay.style.display = 'block';
+        retrievingPopup.style.display = 'block';
+
+        // Using XMLHttpRequest to include support for old browsers
+        // Create a new XMLHttpRequest object
+        const xhr = new XMLHttpRequest();
+
+        // Define the request
+        xhr.open('GET', `https://****confidential****.cloudfunctions.net/****confidential****?id=${id}`, true);
+
+        // Set up onload callback function
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                // Success, parse the response
+                const response = JSON.parse(xhr.responseText);
+                if (response.redirectTo) {
+                    // Hide the transparentOverlay and retrievingPopup when the request is complete
+                    transparentOverlay.style.display = 'none';
+                    retrievingPopup.style.display = 'none';
+                    // Redirect to the specified URL
+                    window.location.href = response.redirectTo;
+                } else {
+                    // Hide the transparentOverlay and retrievingPopup
+                    transparentOverlay.style.display = 'none';
+                    retrievingPopup.style.display = 'none';
+                    // Error/Errors occured during the request.
+                    console.log('Error');
+                }
+            } else if(xhr.status==404) {
+                // ID not found, execute handleIdNotFound() function
+                handleIdNotFound();
+            } else {
+                // Hide the transparentOverlay and retrievingPopup
+                transparentOverlay.style.display = 'none';
+                retrievingPopup.style.display = 'none';
+                // Error/Errors occured during the request.
+                console.log('Error');
+            }
+        };
+
+        // Set up onerror callback function
+        xhr.onerror = function () {
+            // Hide the transparentOverlay and retrievingPopup
+            transparentOverlay.style.display = 'none';
+            retrievingPopup.style.display = 'none';
+            // Error/Errors occured during the request.
+            console.log('Error');
+        };
+
+        // Send the request
+        xhr.send();
+    });
+
+    // Function to handle ID not found scenario
+    function handleIdNotFound() {
+        // Hide retrieving popup
+        retrievingPopup.style.display = 'none';
+        // Show ID not found popup
+        idNotFoundPopup.style.display = 'block';
+    }
+
+    // Append the overlay and popups to the body of the document
+    document.body.appendChild(document.getElementById('transparentOverlay'));
+    document.body.appendChild(document.getElementById('retrievingPopup'));
+    document.body.appendChild(document.getElementById('idNotFoundPopup'));
+</script>
